@@ -95,6 +95,23 @@ func main() {
 	processFlagSet(checker, fs)
 }
 
+type sortable struct {
+	us   []used.Used
+	less func(i, j int) bool
+}
+
+func (s sortable) Len() int {
+	return len(s.us)
+}
+
+func (s sortable) Less(i, j int) bool {
+	return s.less(i, j)
+}
+
+func (s sortable) Swap(i, j int) {
+	s.us[i], s.us[j] = s.us[j], s.us[i]
+}
+
 func processFlagSet(c *used.Checker, fs *flag.FlagSet) {
 	tags := fs.Lookup("tags").Value.(flag.Getter).Get().(string)
 	ignore := fs.Lookup("ignore").Value.(flag.Getter).Get().(string)
@@ -146,7 +163,7 @@ func processFlagSet(c *used.Checker, fs *flag.FlagSet) {
 	}
 
 	us := runner.check(lprog)
-	sort.SliceStable(us, func(i, j int) bool { return us[i].N > us[j].N }) // largest N first
+	sort.Stable(sortable{us: us, less: func(i, j int) bool { return us[i].N > us[j].N }}) // largest N first
 	if lintOutput {
 		ps := runner.lint(lprog, us)
 		for _, p := range ps {
